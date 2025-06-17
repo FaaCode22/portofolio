@@ -14,7 +14,7 @@ const Projects: React.FC = () => {
       title: 'Portofolio',
       description:
         'This is the 3rd Portfolio Website that I have developed and this is the website that you are now open.',
-      image: '../src/images/portofolio.png',
+        image: '/images/portofolio.png',
       tech: ['React', 'Tailwind CSS', 'TypeScript', 'Vite'],
       liveUrl: '#',
       githubUrl: '#',
@@ -24,8 +24,7 @@ const Projects: React.FC = () => {
       title: 'App Premium Shop',
       description:
         'The e-commerce website that I developed 2 after the online game top up website, I developed this using a Laravel Framework.',
-      image:
-        '../src/images/website-app.png',
+      image: '/images/website-app.png',
       tech: ['PHP', 'LARAVEL', 'MySQL', 'Bootstrap CSS'],
       liveUrl: '#',
       githubUrl: '#',
@@ -35,8 +34,7 @@ const Projects: React.FC = () => {
       title: 'PT. Solusi Masalah',
       description:
         'This website is a website owned by a PT and this website that develops myself, I developed using a Laravel Framework.',
-      image:
-        '../src/images/solusi-masalah.png',
+      image:'/images/solusi-masalah.png',
       tech: ['PHP', 'LARAVEL', 'Tailwind css', 'MySQL'],
       liveUrl: '#',
       githubUrl: '#',
@@ -46,8 +44,7 @@ const Projects: React.FC = () => {
       title: 'Online Game Top Up',
       description:
         'This is an e-commerce website that I first developed, and I used a Laravel Framework.',
-      image:
-        '../src/images/website-topup.png',
+      image:'/images/website-topup.png',
       tech: ['PHP', 'Bootstrap CSS', 'Laravel', 'MySQL'],
       liveUrl: '#',
       githubUrl: '#',

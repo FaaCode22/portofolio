@@ -49,7 +49,7 @@ const Hero: React.FC = () => {
           <div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-purple-500 via-blue-500 to-emerald-500 opacity-20 blur-2xl animate-pulse" />
           {/* Foto Profil */}
           <img
-            src="../src/images/foto.png" // Ganti sesuai gambar kamu
+            src="/images/foto.png" // Ganti sesuai gambar kamu
             alt="CANDRA LUKITA ASRO A.F"
             className="w-full h-full object-cover rounded-xl border-4 border-white shadow-xl"
           />
