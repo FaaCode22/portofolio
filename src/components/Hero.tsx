@@ -50,7 +50,7 @@ const Hero: React.FC = () => {
           {/* Foto Profil */}
           <img
             src="/images/foto.png" // Ganti sesuai gambar kamu
-            alt="CANDRA LUKITA ASRO A.F"
+            alt="CANDRA LUKITA ASRO .F"
             className="w-full h-full object-cover rounded-xl border-4 border-white shadow-xl"
           />
         </div>
