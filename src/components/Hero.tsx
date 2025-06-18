@@ -33,7 +33,7 @@ const Hero: React.FC = () => {
     LUKITA
   </h1>
   <h1 className="text-[60px] sm:text-[80px] md:text-[100px] lg:text-[120px] tracking-tight opacity-50 text-black dark:text-white">
-    ASRO A.F
+    ASRO .F
   </h1>
 </div>
 
