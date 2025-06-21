@@ -1,35 +1,43 @@
-import React, { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-import { MessageCircle, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-// Ganti dengan URL dan anon key dari Supabase kamu
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL!, import.meta.env.VITE_SUPABASE_ANON_KEY!);
+import React, { useEffect, useRef, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
+import dayjs from 'dayjs';
+import { MessageSquare, X } from 'lucide-react';
 
 interface Message {
   id: string;
   sender: string;
   message: string;
   created_at: string;
+  reply_to?: string | null;
 }
 
 const FloatingChat: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
+  const [message, setMessage] = useState('');
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   const fetchMessages = async () => {
-    const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-    if (data) setMessages(data);
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .order('created_at', { ascending: true });
+    setMessages(data || []);
   };
 
   useEffect(() => {
     fetchMessages();
+
     const channel = supabase
       .channel('realtime-messages')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
-        setMessages((prev) => [...prev, payload.new as Message]);
-      })
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new as Message]);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -37,67 +45,102 @@ const FloatingChat: React.FC = () => {
     };
   }, []);
 
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-    await supabase.from('messages').insert({ sender: 'guest', message: input });
-    setInput('');
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, open]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!message.trim()) return;
+
+    const { error } = await supabase.from('messages').insert([
+      {
+        sender: 'User',
+        message: message.trim(),
+        reply_to: replyTo?.id ?? null,
+      },
+    ]);
+
+    if (!error) {
+      setMessage('');
+      setReplyTo(null);
+      await fetchMessages();
+    }
   };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      {!isOpen && (
-        <button
-          onClick={() => setIsOpen(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 shadow-lg transition"
-        >
-          <MessageCircle className="w-6 h-6" />
-        </button>
-      )}
+    <>
+      <button
+        onClick={() => setOpen(!open)}
+        className="fixed bottom-5 right-5 z-50 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700"
+      >
+        <MessageSquare className="w-6 h-6" />
+      </button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 50 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 50 }}
-            className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl w-80 h-96 shadow-xl flex flex-col"
-          >
-            <div className="flex items-center justify-between px-4 py-3 border-b dark:border-gray-700">
-              <h2 className="text-sm font-semibold text-gray-800 dark:text-white">Live Chat</h2>
-              <button onClick={() => setIsOpen(false)} className="text-gray-500 hover:text-red-500 transition">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      {open && (
+        <div className="fixed bottom-20 right-5 w-80 max-h-[60vh] bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-xl shadow-lg flex flex-col overflow-hidden z-50">
+          <div className="p-3 font-semibold text-gray-800 dark:text-white border-b border-gray-300 dark:border-gray-700 flex justify-between items-center">
+            Chat with me 👋
+            <button onClick={() => setOpen(false)}><X className="w-4 h-4 text-gray-500" /></button>
+          </div>
 
-            <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2 scrollbar-thin">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`rounded-lg px-3 py-2 max-w-[70%] text-sm ${
-                    msg.sender === 'guest'
-                      ? 'bg-blue-100 text-blue-800 self-end ml-auto'
-                      : 'bg-gray-200 text-gray-700 self-start'
-                  }`}
-                >
+          <div className="flex-1 p-3 overflow-y-auto space-y-3">
+            {messages.map((msg) => (
+              <div key={msg.id} className="text-sm">
+                {msg.reply_to && (
+                  <div className="text-xs text-gray-500 italic mb-1">
+                    Replying to: {messages.find(m => m.id === msg.reply_to)?.message || '...'}
+                  </div>
+                )}
+                <div className="bg-blue-100 dark:bg-blue-900 text-gray-800 dark:text-white px-3 py-2 rounded-xl w-fit max-w-[80%]">
                   {msg.message}
                 </div>
-              ))}
-            </div>
+                <div className="text-[10px] text-gray-500 mt-1 flex justify-between">
+                  {dayjs(msg.created_at).format('HH:mm')}
+                  <button
+                    onClick={() => setReplyTo(msg)}
+                    className="text-blue-500 text-[10px] ml-2 hover:underline"
+                  >
+                    Reply
+                  </button>
+                </div>
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
 
-            <div className="p-2 border-t dark:border-gray-700">
+          <form onSubmit={handleSubmit} className="p-3 border-t border-gray-200 dark:border-gray-800 flex flex-col gap-2">
+            {replyTo && (
+              <div className="p-2 border-l-4 border-blue-500 bg-blue-50 text-xs text-gray-700 rounded">
+                Replying to: <span className="font-medium">{replyTo.message}</span>
+                <button
+                  onClick={() => setReplyTo(null)}
+                  className="ml-2 text-red-500 hover:underline text-[10px]"
+                  type="button"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2">
               <input
                 type="text"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
                 placeholder="Type your message..."
-                className="w-full rounded-lg border dark:border-gray-700 px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white"
               />
+              <button
+                type="submit"
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                Send
+              </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+          </form>
+        </div>
+      )}
+    </>
   );
 };
 
